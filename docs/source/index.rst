@@ -1,5 +1,6 @@
-Welcome to pymatter's documentation!
-====================================
+========
+pymatter
+========
 
 .. include:: readme.rst
 
