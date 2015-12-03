@@ -1,11 +1,15 @@
 Welcome to pymatter's documentation!
 ====================================
 
-Contents:
+.. include:: readme.rst
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
+   installation
+   authors
+   history
+   api
 
 
 Indices and tables
