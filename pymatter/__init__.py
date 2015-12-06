@@ -37,7 +37,7 @@ class IncomingMessage(object):
     def to_dict(self):
         d = {}
         for attr in ['text', 'username', 'icon_url', 'channel']:
-            if self.__getattribute__(attr) is not None:
+            if self.__getattribute__(attr):
                 d[attr] = self.__getattribute__(attr)
         if self.attachments:
             d['attachments'] = [a.to_dict() for a in self.attachments]
@@ -71,7 +71,7 @@ class IncomingMessage(object):
 
 
 class Attachment(object):
-    def __init__(self, text, fallback, title=u'', color=None, pretext=None, author_name=None, author_link=None,
+    def __init__(self, text=u'', fallback=u'', title=u'', color=None, pretext=u'', author_name=None, author_link=None,
                  author_icon=None, title_link=None, image_url=None, thumb_url=None, fields=None):
         self.fallback = decode_text(fallback)
         self.title = decode_text(title)
@@ -108,9 +108,9 @@ class Attachment(object):
             'fallback', 'color', 'pretext', 'author_name', 'author_link', 'author_icon', 'title', 'title_link',
             'text', 'image_url', 'thumb_url'
         ]:
-            if self.__getattribute__(attr) is not None:
+            if self.__getattribute__(attr):
                 d[attr] = self.__getattribute__(attr)
-        if self.fields is not None:
+        if self.fields:
             d['fields'] = [f.to_dict() for f in self.fields]
         return d
 
@@ -147,9 +147,9 @@ class Field(object):
 
     def to_dict(self):
         d = {}
-        if self.title is not None:
+        if self.title:
             d['title'] = self.title
-        if self.value is not None:
+        if self.value:
             d['value'] = self.value
         d['short'] = self.short
         return d

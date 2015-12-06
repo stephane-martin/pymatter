@@ -15,9 +15,8 @@ import sys
 import getpass
 import os
 import datetime
-from os.path import exists, basename
 
-from . import IncomingMessage, Poster, Code, Attachment, Field, decode_text
+from . import IncomingMessage, Attachment, Field, decode_text
 
 
 def main():
