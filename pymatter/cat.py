@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Read stdin, send content to mattermost and write to stdout
+Send content of files to mattermost
 """
 
 from __future__ import unicode_literals
@@ -15,32 +15,48 @@ import sys
 import getpass
 import os
 import datetime
+from os.path import exists, basename
 
-from . import IncomingMessage, AsyncPoster, Code, Attachment, Field, decode_text
+from . import IncomingMessage, Poster, Code, Attachment, Field, decode_text
 
+ext_to_language = {
+    'md': 'markdown',
+    'js': 'javascript',
+    'css': 'css',
+    'py': 'python',
+    'pl': 'perl',
+    'sh': 'bash',
+    'php': 'php',
+    'cpp': 'cpp',
+    'c': 'cpp',
+    'h': 'cpp',
+    'sql': 'sql',
+    'go': 'go',
+    'rb': 'ruby',
+    'java': 'java',
+    'ini': 'ini'
+}
 
 def main():
     hostname = platform.uname()[1]
     local_username = getpass.getuser()
 
     parser = argparse.ArgumentParser(
-        description="pymattertee copies standard input to standard output, making a copy to a mattermost instance"
+        description="concatenate and print files to a mattermost instance"
     )
     parser.add_argument("-c", "--channel", help="Post input values to the specified channel")
     parser.add_argument("-i", "--iconurl", help="Icon URL")
-    parser.add_argument("-l", "--language", help="Language for syntax highlighting")
+    parser.add_argument("-l", "--language", default="detect", help="Language for syntax highlighting")
     parser.add_argument("-m", "--mattermosturl", help="Post the message to the specified webhook URL")
-    parser.add_argument("-n", "--nobuffer", action='store_true',
-                        help="Post each line of stdin as a distinct message, no buffering")
     parser.add_argument("-p", "--plain", action='store_true', help="Don't surround the message with triple ticks")
     parser.add_argument("-u", "--username", default="pymattertee", help="Displayed username")
+    parser.add_argument("files", nargs="+", help="Files to print")
     args = parser.parse_args()
 
     channel = decode_text(args.channel if args.channel else os.environ.get("MM_CHANNEL"))
     icon_url = decode_text(args.iconurl if args.iconurl else os.environ.get("MM_ICONURL"))
     language = decode_text(args.language)
     url = decode_text(args.mattermosturl if args.mattermosturl else os.environ.get("MM_HOOK"))
-    no_buffer = args.nobuffer
     plain = args.plain
     username = decode_text(args.username if args.username else os.environ.get("MM_USERNAME"))
 
@@ -48,26 +64,34 @@ def main():
         sys.stderr.write(b"No Mattermost URL was provided\n")
         sys.exit(-1)
 
-    if no_buffer:
-        with AsyncPoster(url) as poster:
-            for line in sys.stdin:
-                text = Code(line)
-                sys.stdout.write(line)
-                msg = IncomingMessage(username=username, icon_url=icon_url, channel=channel, text=text)
-                poster.post(msg)
+    for f in args.files:
+        if not exists(f):
+            sys.stderr.write(b"'{}' does not exist\n".format(f))
+            sys.exit(-1)
 
-    else:
-        buf = sys.stdin.read()
-        sys.stdout.write(buf)
-        now = datetime.datetime.utcnow().strftime('%c')
-        text = u"**{} on `{}` wrote:**\n".format(local_username, hostname)
-        msg = IncomingMessage(username=username, icon_url=icon_url, channel=channel, text=text)
-        att = Attachment(fallback='tee content', text=buf if plain else Code(buf, language))
+    poster = Poster(url)
+    now = datetime.datetime.utcnow().strftime('%c')
+    text = u"**{} on `{}` wrote:**\n".format(local_username, hostname)
+    msg = IncomingMessage(username=username, icon_url=icon_url, channel=channel, text=text)
+
+    for f in args.files:
+        with open(f) as handle:
+            buf = handle.read()
+        base = basename(f)
+        if language == "detect":
+            try:
+                ext = decode_text(base.rsplit('.', 1)[1])
+                language = ext_to_language[ext]
+            except (IndexError, KeyError):
+                pass
+        att = Attachment(fallback=base, text=buf if plain else Code(buf, language), title=base)
         att.fields.append(Field('Date', now, True))
         att.fields.append(Field('Local user', local_username, True))
         att.fields.append(Field('Hostname', hostname, True))
+        att.fields.append(Field('File name', base, True))
         msg.attachments.append(att)
-        msg.post(url)
+
+    poster.post(msg)
 
 if __name__ == '__main__':
     main()
