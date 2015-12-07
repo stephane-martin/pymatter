@@ -7,7 +7,7 @@ import os
 
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-requirements = ['future', 'requests']
+requirements = ['future', 'requests', 'tornado']
 setup_requires = ['setuptools_git', 'setuptools', 'twine', 'wheel', 'pip']
 name = 'pymatter'
 version = '0.1'
