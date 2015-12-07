@@ -16,7 +16,9 @@ import getpass
 import os
 import datetime
 
-from . import IncomingMessage, Attachment, Field, decode_text
+import requests
+
+from .base import IncomingMessage, Attachment, Field, decode_text
 
 
 def main():
@@ -50,7 +52,14 @@ def main():
     att.fields.append(Field('Local user', local_username, True))
     att.fields.append(Field('Hostname', hostname, True))
     msg.attachments.append(att)
-    msg.post(url)
+
+    try:
+        resp = msg.post(url)
+    except requests.RequestException as ex:
+        sys.stderr.write(str(ex) + '\n')
+        sys.exit(-1)
+    else:
+        sys.stderr.write(b"Mattermost server answered OK\n")
 
 
 if __name__ == '__main__':

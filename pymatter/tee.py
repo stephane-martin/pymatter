@@ -16,7 +16,9 @@ import getpass
 import os
 import datetime
 
-from . import IncomingMessage, AsyncPoster, Code, Attachment, Field, decode_text
+import requests
+
+from .base import IncomingMessage, AsyncPoster, Code, Attachment, Field, decode_text
 
 
 def main():
@@ -49,12 +51,18 @@ def main():
         sys.exit(-1)
 
     if no_buffer:
-        with AsyncPoster(url) as poster:
+        poster = AsyncPoster(url)
+        with poster:
             for line in sys.stdin:
                 text = Code(line)
                 sys.stdout.write(line)
                 msg = IncomingMessage(username=username, icon_url=icon_url, channel=channel, text=text)
                 poster.post(msg)
+        if all([code == 200 for code in poster.answers_codes]):
+            sys.stderr.write(b"Mattermost server answered OK\n")
+        else:
+            sys.stderr.write(b"One or more requests failed: {}\n".format(b" ".join([str(code) for code in poster.answers_codes])))
+            sys.exit(-1)
 
     else:
         buf = sys.stdin.read()
@@ -67,7 +75,14 @@ def main():
         att.fields.append(Field('Local user', local_username, True))
         att.fields.append(Field('Hostname', hostname, True))
         msg.attachments.append(att)
-        msg.post(url)
+
+        try:
+            resp = msg.post(url)
+        except requests.RequestException as ex:
+            sys.stderr.write(str(ex) + '\n')
+            sys.exit(-1)
+        else:
+            sys.stderr.write(b"Mattermost server answered OK\n")
 
 if __name__ == '__main__':
     main()

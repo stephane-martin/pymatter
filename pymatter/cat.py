@@ -17,7 +17,9 @@ import os
 import datetime
 from os.path import exists, basename
 
-from . import IncomingMessage, Poster, Code, Attachment, Field, decode_text
+import requests
+
+from .base import IncomingMessage, Code, Attachment, Field, decode_text
 
 ext_to_language = {
     'md': 'markdown',
@@ -69,7 +71,6 @@ def main():
             sys.stderr.write(b"'{}' does not exist\n".format(f))
             sys.exit(-1)
 
-    poster = Poster(url)
     now = datetime.datetime.utcnow().strftime('%c')
     text = u"**{} on `{}` wrote:**\n".format(local_username, hostname)
     msg = IncomingMessage(username=username, icon_url=icon_url, channel=channel, text=text)
@@ -91,7 +92,13 @@ def main():
         att.fields.append(Field('File name', base, True))
         msg.attachments.append(att)
 
-    poster.post(msg)
+    try:
+        resp = msg.post(url)
+    except requests.RequestException as ex:
+        sys.stderr.write(str(ex) + '\n')
+        sys.exit(-1)
+    else:
+        sys.stderr.write(b"Mattermost server answered OK\n")
 
 if __name__ == '__main__':
     main()
